@@ -83,12 +83,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         throw new Error("暂时只支持导入 TXT 或 EPUB 文件。");
       }
 
+      const decodedText = format === "txt" ? await readTextFile(file, encoding) : undefined;
       const parsedBook =
         format === "epub"
           ? await parseEpub(await fileToArrayBuffer(file))
           : {
               title: undefined,
-              chapters: parseTxt(await readTextFile(file, encoding)),
+              chapters: parseTxt(decodedText?.text ?? ""),
             };
 
       const chapters = parsedBook.chapters;
@@ -113,7 +114,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         chapterCount: chapters.length,
         progress,
         format,
-        encoding: format === "txt" ? encoding : undefined,
+        encoding: decodedText?.encoding,
       };
 
       await saveBookChapters(bookId, chapters);

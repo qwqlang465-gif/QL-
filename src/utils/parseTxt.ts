@@ -1,28 +1,34 @@
 import type { Chapter } from "../types/book";
 
 const chineseNumber = "零〇一二两三四五六七八九十百千万亿";
-const titleSeparator = "[\\s　:：、.．\\-—]*";
+const fullWidthDigits = "０１２３４５６７８９";
+const chapterNumber = `[0-9${fullWidthDigits}${chineseNumber}]+`;
+const titleSeparator = "[\\s　:：、.．,，\\-—]*";
+const optionalPrefix = "(?:正文|作品相关|免费章节|VIP章节|VIP卷|卷首语)?";
 
 const chapterPatterns = [
   new RegExp(
-    `^第[0-9${chineseNumber}]+[章节卷回部集篇]${titleSeparator}.{0,40}$`,
+    `^${optionalPrefix}${titleSeparator}第\\s*${chapterNumber}\\s*[章节卷回部集篇]${titleSeparator}.{0,44}$`,
     "u",
   ),
-  new RegExp(`^卷[0-9${chineseNumber}]+${titleSeparator}.{0,40}$`, "u"),
-  new RegExp(`^(序章|楔子|前言|后记)${titleSeparator}.{0,40}$`, "u"),
+  new RegExp(`^卷\\s*${chapterNumber}${titleSeparator}.{0,44}$`, "u"),
+  new RegExp(`^(序章|楔子|引子|前言|后记|尾声)${titleSeparator}.{0,44}$`, "u"),
   new RegExp(
-    `^番外${titleSeparator}(?:第?[0-9${chineseNumber}]+[章节卷回部集篇]?${titleSeparator})?.{0,40}$`,
+    `^番外${titleSeparator}(?:第?\\s*${chapterNumber}\\s*[章节卷回部集篇]?${titleSeparator})?.{0,44}$`,
     "u",
   ),
-  /^chapter\s+[0-9ivxlcdm]+(?:[\s:：.．\-—]+.{1,40})?$/iu,
+  /^chapter\s+[0-9ivxlcdm]+(?:[\s:：.．,，\-—]+.{1,44})?$/iu,
+  /^[【\[]\s*[0-9０-９]{1,5}\s*[】\]][\s　:：、.．,，\-—]*.{1,44}$/u,
+  /^[0-9０-９]{1,5}\s*[、.．]\s*.{1,44}$/u,
 ];
 
 export function cleanTxt(rawText: string): string {
   return rawText
     .replace(/^\uFEFF/, "")
+    .replace(/\u0000/g, "")
     .replace(/\r\n?/g, "\n")
     .split("\n")
-    .map((line) => line.replace(/\uFEFF/g, "").replace(/[ \t]+$/g, ""))
+    .map((line) => line.replace(/\uFEFF/g, "").replace(/[ \t　]+$/g, ""))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -36,6 +42,14 @@ export function isChapterTitle(line: string): boolean {
   }
 
   if (/^[，。！？；、,.!?;]$/.test(title)) {
+    return false;
+  }
+
+  if (/^[0-9０-９]+$/.test(title)) {
+    return false;
+  }
+
+  if (/[。！？!?；;]$/.test(title) && title.length > 18) {
     return false;
   }
 

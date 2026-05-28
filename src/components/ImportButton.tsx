@@ -8,13 +8,16 @@ interface ImportButtonProps {
 }
 
 const encodingOptions = [
+  { label: "自动识别", value: "auto" },
   { label: "UTF-8", value: "utf-8" },
   { label: "GB18030", value: "gb18030" },
+  { label: "UTF-16LE", value: "utf-16le" },
+  { label: "UTF-16BE", value: "utf-16be" },
 ];
 
 export function ImportButton({ loading, onImport, buttonRef }: ImportButtonProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [encoding, setEncoding] = useState("utf-8");
+  const [encoding, setEncoding] = useState("auto");
 
   const openFilePicker = () => {
     inputRef.current?.click();
