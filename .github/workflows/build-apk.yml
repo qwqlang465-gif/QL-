@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build QL Release
 
 on:
   workflow_dispatch:
@@ -41,8 +41,30 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Copy web assets to Android project
-        run: npx cap copy android
+      - name: Prepare Android web assets
+        run: |
+          rm -rf android/app/src/main/assets/public
+          mkdir -p android/app/src/main/assets/public
+          cp -R dist/. android/app/src/main/assets/public/
+          cat > android/app/src/main/assets/capacitor.config.json <<'JSON'
+          {
+            "appId": "com.qwqlang465.ql",
+            "appName": "QL",
+            "webDir": "dist",
+            "server": {
+              "androidScheme": "https",
+              "hostname": "ql.localhost"
+            }
+          }
+          JSON
+          echo "[]" > android/app/src/main/assets/capacitor.plugins.json
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/config.xml <<'XML'
+          <?xml version='1.0' encoding='utf-8'?>
+          <widget version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+            <access origin="*" />
+          </widget>
+          XML
 
       - name: Build APKs
         working-directory: android
@@ -63,13 +85,63 @@ jobs:
           path: artifacts/*.apk
           if-no-files-found: error
 
-      - name: Upload APKs to GitHub Release
+  windows-exe:
+    name: Windows exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows unpacked exe
+        run: npm run desktop:pack
+
+      - name: Collect Windows exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path "release\win-unpacked\*" -DestinationPath "artifacts\QL-${{ github.ref_name }}-win-unpacked.zip" -Force
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: QL-${{ github.ref_name }}-windows-exe
+          path: artifacts/*.zip
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs:
+      - android-apk
+      - windows-exe
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Upload artifacts to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF_NAME}"
           notes_file="RELEASE_NOTES_${tag}.md"
+          shopt -s globstar nullglob
 
           if [ ! -f "$notes_file" ]; then
             notes_file="CHANGELOG.md"
@@ -79,4 +151,4 @@ jobs:
             gh release create "$tag" --title "QL ${tag}" --notes-file "$notes_file"
           fi
 
-          gh release upload "$tag" artifacts/*.apk --clobber
+          gh release upload "$tag" release-artifacts/**/*.apk release-artifacts/**/*.zip --clobber

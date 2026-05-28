@@ -11,12 +11,12 @@ QL 是一个本地优先的 TXT 小说阅读器，也支持基础 EPUB 导入。
 
 ## 当前状态
 
-当前版本：`v0.8.1`
+当前版本：`v0.8.2`
 
 | 目标 | 状态 | 说明 |
 | --- | --- | --- |
 | Windows exe | 已完成 | 已验证 Windows unpacked exe，可运行 `npm run desktop:pack` |
-| Android APK | 已接入自动构建 | GitHub Actions 会在 tag 发布时构建 debug / release APK 并上传到 Release |
+| Android APK | 已接入自动构建 | GitHub Actions 会在 tag 发布时构建 APK 并上传到 Release |
 | React + Vite 核心 | 已完成 | 作为 exe / APK 的共同阅读器内核，不作为独立发布重点 |
 
 ## 功能

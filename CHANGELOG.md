@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.8.2 - 2026-05-29
+
+QL exe + APK 发布 workflow 修复版本。
+
+### Added
+
+- GitHub Actions 新增 Windows exe 构建 job
+- tag 发布时同时上传 Windows unpacked exe zip 和 Android APK 到 GitHub Release
+- 将 Capacitor 需要的空 Cordova 插件模块纳入仓库，避免 CI 依赖临时生成目录
+
+### Fixed
+
+- APK workflow 不再依赖 `cap copy` / `cap sync`，改为直接准备 Android WebView assets 和 Capacitor 配置文件
+- Android 原生版本号更新为 `0.8.2`
+
+### Notes
+
+- 本机已验证 `npm run build`、`npx cap copy android`、`npm run cap:sync` 和 `npm run desktop:pack`
+- APK 原生构建继续由 GitHub Actions 的 JDK 21 / Android SDK 环境执行
+
 ## v0.8.1 - 2026-05-29
 
 QL Android APK workflow 修复版本。
