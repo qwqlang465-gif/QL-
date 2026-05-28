@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CSSProperties } from "react";
-import type { Book, ReaderSettings, ReaderTheme } from "../types/book";
+import type { Book, Bookmark, ReaderSettings, ReaderTheme, SearchResult } from "../types/book";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { useReaderSettingsStore } from "../store/useReaderSettingsStore";
+import { formatProgressPercent } from "../utils/format";
+import { searchChapters, splitParagraphs, splitTextByQuery } from "../utils/search";
 import { throttle } from "../utils/throttle";
+import { BookmarkPanel } from "./BookmarkPanel";
 import { ChapterSidebar } from "./ChapterSidebar";
 import { ReaderBottomBar } from "./ReaderBottomBar";
 import { ReaderHeader } from "./ReaderHeader";
+import { ReaderSearchPanel } from "./ReaderSearchPanel";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 
 interface ReaderProps {
@@ -73,6 +77,10 @@ const fontFamilyMap: Record<ReaderSettings["fontFamily"], string> = {
   mono: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
 };
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function clampChapterIndex(index: number, maxLength: number): number {
   if (maxLength <= 0) {
     return 0;
@@ -81,22 +89,25 @@ function clampChapterIndex(index: number, maxLength: number): number {
   return Math.min(Math.max(index, 0), maxLength - 1);
 }
 
-function splitParagraphs(content: string): string[] {
-  return content
-    .split(/\n+/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
-}
-
 export function Reader({ book }: ReaderProps) {
   const navigate = useNavigate();
   const updateProgress = useLibraryStore((state) => state.updateProgress);
+  const getBookmarks = useLibraryStore((state) => state.getBookmarks);
+  const addBookmark = useLibraryStore((state) => state.addBookmark);
+  const deleteBookmark = useLibraryStore((state) => state.deleteBookmark);
   const { settings, updateSettings, resetSettings } = useReaderSettingsStore();
   const initialChapterIndex = clampChapterIndex(book.progress.chapterIndex, book.chapters.length);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(initialChapterIndex);
   const [chapterSidebarOpen, setChapterSidebarOpen] = useState(false);
+  const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [readingPercent, setReadingPercent] = useState(book.progress.percent ?? 0);
   const isRestoringScrollRef = useRef(true);
+  const pendingParagraphScrollRef = useRef<number | null>(null);
   const currentProgressRef = useRef({
     chapterIndex: initialChapterIndex,
     chapterId: book.chapters[initialChapterIndex]?.id ?? "chapter-0",
@@ -104,6 +115,7 @@ export function Reader({ book }: ReaderProps) {
 
   const currentChapter = book.chapters[currentChapterIndex] ?? book.chapters[0];
   const paragraphs = useMemo(() => splitParagraphs(currentChapter?.content ?? ""), [currentChapter]);
+  const searchResults = useMemo(() => searchChapters(book.chapters, searchQuery), [book.chapters, searchQuery]);
   const palette = themePalette[settings.theme];
 
   const themeStyle: ReaderThemeStyle = {
@@ -124,12 +136,24 @@ export function Reader({ book }: ReaderProps) {
     fontFamily: fontFamilyMap[settings.fontFamily],
   };
 
+  const getReadingPercent = (chapterIndex: number, scrollTop: number) => {
+    if (book.chapters.length === 0) {
+      return 0;
+    }
+
+    const maxScrollTop = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const chapterRatio = clamp(scrollTop / maxScrollTop, 0, 1);
+    return Math.min(100, Math.max(0, ((chapterIndex + chapterRatio) / book.chapters.length) * 100));
+  };
+
   const saveProgress = (chapterIndex: number, scrollTop: number) => {
     const chapter = book.chapters[chapterIndex];
     if (!chapter) {
       return;
     }
 
+    const percent = getReadingPercent(chapterIndex, scrollTop);
+    setReadingPercent(percent);
     currentProgressRef.current = {
       chapterIndex,
       chapterId: chapter.id,
@@ -140,6 +164,8 @@ export function Reader({ book }: ReaderProps) {
       chapterIndex,
       chapterTitle: chapter.title,
       scrollTop: Math.max(0, Math.round(scrollTop)),
+      percent,
+      updatedAt: Date.now(),
     });
   };
 
@@ -162,6 +188,90 @@ export function Reader({ book }: ReaderProps) {
     restoreScroll(scrollTop);
   };
 
+  const scrollToParagraph = (paragraphIndex: number) => {
+    window.setTimeout(() => {
+      const target = document.querySelector<HTMLElement>(`[data-reader-paragraph="${paragraphIndex}"]`);
+      if (!target) {
+        return;
+      }
+
+      isRestoringScrollRef.current = true;
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      window.setTimeout(() => {
+        isRestoringScrollRef.current = false;
+        saveProgress(currentProgressRef.current.chapterIndex, window.scrollY);
+      }, 480);
+    }, 420);
+  };
+
+  const handleSelectSearchResult = (result: SearchResult) => {
+    setActiveSearchQuery(searchQuery);
+
+    if (result.chapterIndex === currentChapterIndex) {
+      goToChapter(result.chapterIndex, 0);
+      scrollToParagraph(result.paragraphIndex);
+    } else {
+      pendingParagraphScrollRef.current = result.paragraphIndex;
+      goToChapter(result.chapterIndex, 0);
+    }
+
+    setSearchPanelOpen(false);
+  };
+
+  const getVisibleExcerpt = () => {
+    const paragraphElements = Array.from(document.querySelectorAll<HTMLElement>("[data-reader-paragraph]"));
+    const visibleParagraph = paragraphElements.find((paragraph) => {
+      const rect = paragraph.getBoundingClientRect();
+      return rect.bottom > 96 && rect.top < window.innerHeight * 0.72;
+    });
+    const text = visibleParagraph?.textContent?.trim() || paragraphs[0] || currentChapter.title;
+    return text.length > 90 ? `${text.slice(0, 90)}...` : text;
+  };
+
+  const handleAddBookmark = async () => {
+    const bookmark = await addBookmark(book.id, {
+      chapterId: currentChapter.id,
+      chapterIndex: currentChapterIndex,
+      chapterTitle: currentChapter.title,
+      scrollTop: Math.max(0, Math.round(window.scrollY)),
+      excerpt: getVisibleExcerpt(),
+    });
+
+    if (bookmark) {
+      setBookmarks((currentBookmarks) => {
+        const withoutDuplicate = currentBookmarks.filter((item) => item.id !== bookmark.id);
+        return [bookmark, ...withoutDuplicate].sort((a, b) => b.createdAt - a.createdAt);
+      });
+    }
+  };
+
+  const handleDeleteBookmark = async (bookmarkId: string) => {
+    await deleteBookmark(book.id, bookmarkId);
+    setBookmarks((currentBookmarks) => currentBookmarks.filter((bookmark) => bookmark.id !== bookmarkId));
+  };
+
+  const handleSelectBookmark = (bookmark: Bookmark) => {
+    goToChapter(bookmark.chapterIndex, bookmark.scrollTop);
+    setBookmarkPanelOpen(false);
+  };
+
+  const renderParagraph = (paragraph: string, index: number) => {
+    const parts = splitTextByQuery(paragraph, activeSearchQuery);
+    return (
+      <p key={`${currentChapter.id}-${index}`} data-reader-paragraph={index}>
+        {parts.map((part, partIndex) =>
+          part.match ? (
+            <mark key={`${index}-${partIndex}`} className="rounded bg-primary/20 px-0.5 text-inherit">
+              {part.text}
+            </mark>
+          ) : (
+            <span key={`${index}-${partIndex}`}>{part.text}</span>
+          ),
+        )}
+      </p>
+    );
+  };
+
   useEffect(() => {
     const savedScrollTop = currentChapterIndex === initialChapterIndex ? book.progress.scrollTop ?? 0 : 0;
     restoreScroll(savedScrollTop);
@@ -169,6 +279,36 @@ export function Reader({ book }: ReaderProps) {
     // Only run for this book mount. Chapter changes are handled by goToChapter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book.id]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadBookmarks = async () => {
+      const loadedBookmarks = await getBookmarks(book.id);
+      if (mounted) {
+        setBookmarks(loadedBookmarks);
+      }
+    };
+
+    void loadBookmarks();
+
+    return () => {
+      mounted = false;
+    };
+  }, [book.id, getBookmarks]);
+
+  useEffect(() => {
+    const paragraphIndex = pendingParagraphScrollRef.current;
+
+    if (paragraphIndex === null) {
+      return;
+    }
+
+    pendingParagraphScrollRef.current = null;
+    scrollToParagraph(paragraphIndex);
+    // scrollToParagraph intentionally reads the freshly rendered chapter DOM.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChapterIndex, paragraphs]);
 
   useEffect(() => {
     const activeChapter = book.chapters[currentChapterIndex];
@@ -183,18 +323,28 @@ export function Reader({ book }: ReaderProps) {
   }, [book.chapters, currentChapterIndex]);
 
   useEffect(() => {
-    const saveScroll = throttle(() => {
-      if (isRestoringScrollRef.current) {
-        return;
+    const saveCurrentScroll = (syncVisiblePercent = true) => {
+      const progress = currentProgressRef.current;
+      const scrollTop = Math.max(0, Math.round(window.scrollY));
+      const percent = getReadingPercent(progress.chapterIndex, scrollTop);
+      if (syncVisiblePercent) {
+        setReadingPercent(percent);
       }
 
-      const progress = currentProgressRef.current;
       void updateProgress(book.id, {
         chapterId: progress.chapterId,
         chapterIndex: progress.chapterIndex,
         chapterTitle: book.chapters[progress.chapterIndex]?.title,
-        scrollTop: Math.max(0, Math.round(window.scrollY)),
+        scrollTop,
+        percent,
+        updatedAt: Date.now(),
       });
+    };
+
+    const saveScroll = throttle(() => {
+      if (!isRestoringScrollRef.current) {
+        saveCurrentScroll();
+      }
     }, 900);
 
     const handleScroll = () => {
@@ -203,13 +353,7 @@ export function Reader({ book }: ReaderProps) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden" && !isRestoringScrollRef.current) {
-        const progress = currentProgressRef.current;
-        void updateProgress(book.id, {
-          chapterId: progress.chapterId,
-          chapterIndex: progress.chapterIndex,
-          chapterTitle: book.chapters[progress.chapterIndex]?.title,
-          scrollTop: Math.max(0, Math.round(window.scrollY)),
-        });
+        saveCurrentScroll();
       }
     };
 
@@ -222,21 +366,17 @@ export function Reader({ book }: ReaderProps) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       if (!isRestoringScrollRef.current) {
-        const progress = currentProgressRef.current;
-        void updateProgress(book.id, {
-          chapterId: progress.chapterId,
-          chapterIndex: progress.chapterIndex,
-          chapterTitle: book.chapters[progress.chapterIndex]?.title,
-          scrollTop: Math.max(0, Math.round(window.scrollY)),
-        });
+        saveCurrentScroll(false);
       }
     };
-  }, [book.id, updateProgress]);
+  }, [book.chapters, book.id, updateProgress]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setChapterSidebarOpen(false);
+        setBookmarkPanelOpen(false);
+        setSearchPanelOpen(false);
         setSettingsPanelOpen(false);
       }
     };
@@ -268,7 +408,9 @@ export function Reader({ book }: ReaderProps) {
         title={book.name}
         subtitle={currentChapter.title}
         onBack={() => navigate("/")}
+        onOpenSearch={() => setSearchPanelOpen(true)}
         onOpenChapters={() => setChapterSidebarOpen(true)}
+        onOpenBookmarks={() => setBookmarkPanelOpen(true)}
         onOpenSettings={() => setSettingsPanelOpen(true)}
       />
 
@@ -279,12 +421,12 @@ export function Reader({ book }: ReaderProps) {
           </h1>
 
           {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => <p key={`${currentChapter.id}-${index}`}>{paragraph}</p>)
+            paragraphs.map(renderParagraph)
           ) : (
             <p className="text-center opacity-70">本章暂无正文。</p>
           )}
 
-          <div className="reader-muted mt-14 flex items-center justify-center gap-4 text-sm">
+          <div className="reader-muted mt-14 flex flex-wrap items-center justify-center gap-4 text-sm">
             <button
               type="button"
               disabled={currentChapterIndex === 0}
@@ -296,6 +438,7 @@ export function Reader({ book }: ReaderProps) {
             <span>
               {currentChapterIndex + 1} / {book.chapters.length}
             </span>
+            <span>已读 {formatProgressPercent(readingPercent)}</span>
             <button
               type="button"
               disabled={currentChapterIndex >= book.chapters.length - 1}
@@ -311,10 +454,21 @@ export function Reader({ book }: ReaderProps) {
       <ReaderBottomBar
         onPrevious={() => goToChapter(currentChapterIndex - 1)}
         onNext={() => goToChapter(currentChapterIndex + 1)}
+        onOpenSearch={() => setSearchPanelOpen(true)}
         onOpenChapters={() => setChapterSidebarOpen(true)}
+        onOpenBookmarks={() => setBookmarkPanelOpen(true)}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         previousDisabled={currentChapterIndex === 0}
         nextDisabled={currentChapterIndex >= book.chapters.length - 1}
+      />
+
+      <ReaderSearchPanel
+        open={searchPanelOpen}
+        query={searchQuery}
+        results={searchResults}
+        onQueryChange={setSearchQuery}
+        onSelectResult={handleSelectSearchResult}
+        onClose={() => setSearchPanelOpen(false)}
       />
 
       <ChapterSidebar
@@ -323,6 +477,15 @@ export function Reader({ book }: ReaderProps) {
         currentChapterIndex={currentChapterIndex}
         onSelectChapter={(chapterIndex) => goToChapter(chapterIndex)}
         onClose={() => setChapterSidebarOpen(false)}
+      />
+
+      <BookmarkPanel
+        open={bookmarkPanelOpen}
+        bookmarks={bookmarks}
+        onAddBookmark={handleAddBookmark}
+        onSelectBookmark={handleSelectBookmark}
+        onDeleteBookmark={handleDeleteBookmark}
+        onClose={() => setBookmarkPanelOpen(false)}
       />
 
       <ReaderSettingsPanel

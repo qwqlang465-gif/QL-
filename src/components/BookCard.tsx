@@ -6,6 +6,7 @@ import {
   formatChapterCount,
   formatDate,
   formatEncoding,
+  formatProgressPercent,
   formatProgressTitle,
 } from "../utils/format";
 
@@ -78,6 +79,7 @@ export function BookCard({ book, progressTitle, onDelete }: BookCardProps) {
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-reader-muted">
           <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatChapterCount(book.chapterCount)}</span>
+          <span className="rounded-full bg-[#f3eadf] px-3 py-1">已读 {formatProgressPercent(book.progress.percent)}</span>
           <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatBookFormat(book.format)}</span>
           {book.format !== "epub" ? (
             <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatEncoding(book.encoding)}</span>

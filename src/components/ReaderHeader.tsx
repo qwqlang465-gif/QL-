@@ -1,11 +1,13 @@
-import { ArrowLeft, List, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Bookmark, List, Search, SlidersHorizontal } from "lucide-react";
 import { IconButton } from "./IconButton";
 
 interface ReaderHeaderProps {
   title: string;
   subtitle: string;
   onBack: () => void;
+  onOpenSearch: () => void;
   onOpenChapters: () => void;
+  onOpenBookmarks: () => void;
   onOpenSettings: () => void;
 }
 
@@ -13,7 +15,9 @@ export function ReaderHeader({
   title,
   subtitle,
   onBack,
+  onOpenSearch,
   onOpenChapters,
+  onOpenBookmarks,
   onOpenSettings,
 }: ReaderHeaderProps) {
   return (
@@ -24,7 +28,9 @@ export function ReaderHeader({
           <div className="truncate text-sm font-medium">{title}</div>
           <div className="reader-muted mt-0.5 truncate text-xs">{subtitle}</div>
         </div>
+        <IconButton icon={<Search size={20} />} label="搜索" onClick={onOpenSearch} />
         <IconButton icon={<List size={20} />} label="目录" onClick={onOpenChapters} />
+        <IconButton icon={<Bookmark size={20} />} label="书签" onClick={onOpenBookmarks} />
         <IconButton icon={<SlidersHorizontal size={20} />} label="设置" onClick={onOpenSettings} />
       </div>
     </header>

@@ -16,6 +16,7 @@ export const defaultReaderSettings: ReaderSettings = {
 interface ReaderSettingsState {
   settings: ReaderSettings;
   updateSettings: (partialSettings: Partial<ReaderSettings>) => void;
+  replaceSettings: (settings: ReaderSettings) => void;
   resetSettings: () => void;
 }
 
@@ -45,6 +46,11 @@ export const useReaderSettingsStore = create<ReaderSettingsState>((set, get) => 
   settings: loadInitialSettings(),
   updateSettings: (partialSettings) => {
     const nextSettings = normalizeSettings({ ...get().settings, ...partialSettings });
+    safeSetLocalStorage(READER_SETTINGS_KEY, nextSettings);
+    set({ settings: nextSettings });
+  },
+  replaceSettings: (settings) => {
+    const nextSettings = normalizeSettings(settings);
     safeSetLocalStorage(READER_SETTINGS_KEY, nextSettings);
     set({ settings: nextSettings });
   },

@@ -11,6 +11,8 @@ export interface BookProgress {
   chapterIndex: number;
   chapterTitle?: string;
   scrollTop?: number;
+  percent?: number;
+  updatedAt?: number;
 }
 
 export interface BookMeta {
@@ -35,6 +37,26 @@ export interface Book {
   progress: BookProgress;
   format?: BookFormat;
   encoding?: string;
+}
+
+export interface Bookmark {
+  id: string;
+  bookId: string;
+  chapterId: string;
+  chapterIndex: number;
+  chapterTitle: string;
+  scrollTop: number;
+  excerpt: string;
+  createdAt: number;
+}
+
+export interface SearchResult {
+  id: string;
+  chapterId: string;
+  chapterIndex: number;
+  chapterTitle: string;
+  paragraphIndex: number;
+  excerpt: string;
 }
 
 export type ReaderTheme = "light" | "dark" | "green" | "paper";

@@ -132,7 +132,36 @@ async function readZipText(zip: JSZip, lookup: Map<string, string>, path: string
 }
 
 function normalizeText(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  return text.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function readElementText(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent ?? "";
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return "";
+  }
+
+  const element = node as Element;
+  const tagName = localName(element);
+
+  if (ignoredTextTags.has(tagName)) {
+    return "";
+  }
+
+  if (tagName === "br") {
+    return "\n";
+  }
+
+  if (tagName === "img") {
+    return element.getAttribute("alt") ?? element.getAttribute("title") ?? "";
+  }
+
+  return Array.from(element.childNodes)
+    .map((child) => readElementText(child))
+    .join("");
 }
 
 function hasCollectableChildren(element: Element): boolean {
@@ -152,7 +181,7 @@ function collectTextBlocks(node: Node, blocks: string[]): void {
   }
 
   if (collectTextTags.has(tagName)) {
-    const text = normalizeText(element.textContent ?? "");
+    const text = normalizeText(readElementText(element));
     if (text) {
       blocks.push(text);
     }
@@ -160,7 +189,7 @@ function collectTextBlocks(node: Node, blocks: string[]): void {
   }
 
   if (!hasCollectableChildren(element)) {
-    const text = normalizeText(element.textContent ?? "");
+    const text = normalizeText(readElementText(element));
     if (text) {
       blocks.push(text);
     }
@@ -229,10 +258,16 @@ function getManifest(opfDocument: Document, baseDir: string): Map<string, Manife
 
 function getSpineItems(opfDocument: Document, manifest: Map<string, ManifestItem>): ManifestItem[] {
   return getElementsByLocalName(opfDocument, "itemref")
+    .filter((itemRef) => itemRef.getAttribute("linear") !== "no")
     .map((itemRef) => itemRef.getAttribute("idref"))
     .filter((idRef): idRef is string => Boolean(idRef))
     .map((idRef) => manifest.get(idRef))
-    .filter((item): item is ManifestItem => item !== undefined && htmlMediaTypes.has(item.mediaType));
+    .filter(
+      (item): item is ManifestItem =>
+        item !== undefined &&
+        htmlMediaTypes.has(item.mediaType) &&
+        !item.properties?.split(/\s+/).includes("nav"),
+    );
 }
 
 function getNavItem(manifest: Map<string, ManifestItem>): ManifestItem | undefined {

@@ -1,19 +1,29 @@
 import { create } from "zustand";
-import type { Book, BookMeta, BookProgress } from "../types/book";
+import type { Book, BookMeta, Bookmark, BookProgress, ReaderSettings } from "../types/book";
 import { fileToArrayBuffer, getFileFormat, readTextFile } from "../utils/file";
 import { getFileBaseName } from "../utils/format";
 import { parseEpub } from "../utils/parseEpub";
 import { parseTxt } from "../utils/parseTxt";
 import {
+  READER_SETTINGS_KEY,
+  createLibraryBackup,
+  deleteBookBookmarks,
   deleteBookChapters,
+  getBookBookmarks,
   getBookChapters,
   getBookMetas,
+  restoreLibraryBackup,
+  safeSetLocalStorage,
+  saveBookBookmarks,
   saveBookChapters,
   saveBookMetas,
 } from "../utils/storage";
 
+type NewBookmark = Omit<Bookmark, "id" | "bookId" | "createdAt">;
+
 interface LibraryState {
   bookMetas: BookMeta[];
+  bookmarksByBookId: Record<string, Bookmark[]>;
   loading: boolean;
   error: string | null;
   loadBooks: () => Promise<void>;
@@ -21,6 +31,11 @@ interface LibraryState {
   deleteBook: (bookId: string) => Promise<void>;
   updateProgress: (bookId: string, progress: BookProgress) => Promise<void>;
   getBook: (bookId: string) => Promise<Book | undefined>;
+  getBookmarks: (bookId: string) => Promise<Bookmark[]>;
+  addBookmark: (bookId: string, bookmark: NewBookmark) => Promise<Bookmark | undefined>;
+  deleteBookmark: (bookId: string, bookmarkId: string) => Promise<void>;
+  exportLibraryData: (settings?: ReaderSettings) => Promise<string | undefined>;
+  importLibraryData: (file: File) => Promise<ReaderSettings | undefined>;
 }
 
 function createBookId(): string {
@@ -41,6 +56,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   bookMetas: [],
+  bookmarksByBookId: {},
   loading: false,
   error: null,
 
@@ -84,6 +100,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         chapterIndex: 0,
         chapterTitle: chapters[0]?.title ?? "全文",
         scrollTop: 0,
+        percent: 0,
+        updatedAt: now,
       };
 
       const meta: BookMeta = {
@@ -99,6 +117,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       };
 
       await saveBookChapters(bookId, chapters);
+      await saveBookBookmarks(bookId, []);
 
       const latestMetas = await getBookMetas();
       const nextMetas = sortBookMetas([meta, ...latestMetas.filter((item) => item.id !== bookId)]);
@@ -121,9 +140,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       const nextMetas = latestMetas.filter((book) => book.id !== bookId);
 
       await deleteBookChapters(bookId);
+      await deleteBookBookmarks(bookId);
       await saveBookMetas(nextMetas);
 
-      set({ bookMetas: sortBookMetas(nextMetas), loading: false });
+      set((state) => {
+        const { [bookId]: _removed, ...nextBookmarksByBookId } = state.bookmarksByBookId;
+        return {
+          bookMetas: sortBookMetas(nextMetas),
+          bookmarksByBookId: nextBookmarksByBookId,
+          loading: false,
+        };
+      });
     } catch (error) {
       set({
         error: getErrorMessage(error, "删除书籍失败，请稍后重试。"),
@@ -180,6 +207,130 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     } catch (error) {
       set({
         error: getErrorMessage(error, "打开书籍失败。"),
+      });
+      return undefined;
+    }
+  },
+
+  getBookmarks: async (bookId) => {
+    try {
+      const bookmarks = await getBookBookmarks(bookId);
+      const sortedBookmarks = [...bookmarks].sort((a, b) => b.createdAt - a.createdAt);
+      set((state) => ({
+        bookmarksByBookId: {
+          ...state.bookmarksByBookId,
+          [bookId]: sortedBookmarks,
+        },
+      }));
+      return sortedBookmarks;
+    } catch (error) {
+      set({
+        error: getErrorMessage(error, "读取书签失败。"),
+      });
+      return [];
+    }
+  },
+
+  addBookmark: async (bookId, bookmark) => {
+    try {
+      const currentBookmarks = await getBookBookmarks(bookId);
+      const duplicate = currentBookmarks.find(
+        (item) =>
+          item.chapterId === bookmark.chapterId &&
+          Math.abs(item.scrollTop - bookmark.scrollTop) < 120,
+      );
+
+      if (duplicate) {
+        set({ error: "当前位置已经有书签了。" });
+        return duplicate;
+      }
+
+      const now = Date.now();
+      const nextBookmark: Bookmark = {
+        ...bookmark,
+        id: createBookId(),
+        bookId,
+        createdAt: now,
+      };
+      const nextBookmarks = [nextBookmark, ...currentBookmarks].sort((a, b) => b.createdAt - a.createdAt);
+
+      await saveBookBookmarks(bookId, nextBookmarks);
+      set((state) => ({
+        bookmarksByBookId: {
+          ...state.bookmarksByBookId,
+          [bookId]: nextBookmarks,
+        },
+        error: null,
+      }));
+
+      return nextBookmark;
+    } catch (error) {
+      set({
+        error: getErrorMessage(error, "添加书签失败。"),
+      });
+      return undefined;
+    }
+  },
+
+  deleteBookmark: async (bookId, bookmarkId) => {
+    try {
+      const currentBookmarks = await getBookBookmarks(bookId);
+      const nextBookmarks = currentBookmarks.filter((bookmark) => bookmark.id !== bookmarkId);
+      await saveBookBookmarks(bookId, nextBookmarks);
+      set((state) => ({
+        bookmarksByBookId: {
+          ...state.bookmarksByBookId,
+          [bookId]: nextBookmarks,
+        },
+        error: null,
+      }));
+    } catch (error) {
+      set({
+        error: getErrorMessage(error, "删除书签失败。"),
+      });
+    }
+  },
+
+  exportLibraryData: async (settings) => {
+    set({ loading: true, error: null });
+
+    try {
+      const backup = await createLibraryBackup(settings);
+      set({ loading: false });
+      return JSON.stringify(backup, null, 2);
+    } catch (error) {
+      set({
+        error: getErrorMessage(error, "导出备份失败。"),
+        loading: false,
+      });
+      return undefined;
+    }
+  },
+
+  importLibraryData: async (file) => {
+    set({ loading: true, error: null });
+
+    try {
+      const backupText = await file.text();
+      const backupValue = JSON.parse(backupText) as unknown;
+      const restored = await restoreLibraryBackup(backupValue);
+
+      if (restored.settings) {
+        safeSetLocalStorage(READER_SETTINGS_KEY, restored.settings);
+      }
+
+      set({
+        bookMetas: sortBookMetas(restored.bookMetas),
+        bookmarksByBookId: {},
+        loading: false,
+        error: null,
+      });
+
+      return restored.settings;
+    } catch (error) {
+      set({
+        error: getErrorMessage(error, "导入备份失败，请确认文件是否有效。"),
+        loading: false,
       });
       return undefined;
     }

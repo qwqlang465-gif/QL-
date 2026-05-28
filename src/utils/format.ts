@@ -45,3 +45,24 @@ export function getFileBaseName(fileName: string): string {
 export function formatProgressTitle(title?: string): string {
   return title ? `读到：${title}` : "尚未开始";
 }
+
+export function formatProgressPercent(percent?: number): string {
+  if (typeof percent !== "number" || Number.isNaN(percent)) {
+    return "0%";
+  }
+
+  const normalizedPercent = Math.min(100, Math.max(0, percent));
+  return `${Math.round(normalizedPercent)}%`;
+}
+
+export function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 KB";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}

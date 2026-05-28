@@ -1,6 +1,6 @@
 {
   "name": "ql",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "一个极简、美观、私密的本地 TXT / EPUB 小说阅读器。",
   "author": "qwqlang465-gif",
   "private": true,
@@ -37,7 +37,9 @@
     "tauri:build": "tauri build",
     "cap:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
-    "android:build": "npm run build && cap sync android && android\\gradlew.bat -p android assembleDebug"
+    "android:debug": "npm run build && cap sync android && android\\gradlew.bat -p android assembleDebug",
+    "android:release": "npm run build && cap sync android && android\\gradlew.bat -p android assembleRelease",
+    "android:build": "npm run android:debug"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

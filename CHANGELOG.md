@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.7.0 - 2026-05-29
+
+QL 第七阶段发布版本。
+
+### Added
+
+- 添加阅读页整本书搜索面板
+- 添加搜索结果跳转和正文高亮
+- 添加书签面板
+- 添加当前阅读位置书签添加、跳转和删除
+- 添加书签 IndexedDB 独立存储 `ql_book_bookmarks_${bookId}`
+- 添加阅读百分比保存与书架展示
+- 添加 QL 本地备份导出
+- 添加 QL 本地备份导入，支持恢复书架、章节、阅读进度、书签和阅读设置
+- 添加 `android:debug` debug APK 构建脚本
+- 添加 `android:release` release APK 构建脚本
+- 添加 EPUB 图片 alt/title 文本兜底提取
+
+### Changed
+
+- `android:build` 改为 debug 构建别名
+- Android 原生版本号更新为 `0.7.0`
+- Capacitor 本地壳路由检测补充 `capacitor:` 协议
+- EPUB spine 解析跳过 `linear="no"` 和 nav 目录页，减少目录页被当正文章节
+- PWA 缓存版本更新到 v0.7.0
+- README 更新为 v0.7 功能完整性说明
+
+### Notes
+
+- `npm run build` 已通过验证
+- `npm run cap:sync` 已通过验证
+- `npm run android:debug` 已执行，当前在 Gradle 官方发行包下载阶段超时
+- Android 原生 APK 构建仍依赖本机 JDK 21、Android SDK 和稳定 Gradle 下载环境
+- v0.7.0 完成当前规划中的主要应用功能，后续重点转向原生构建环境和体验打磨
+
 ## v0.6.0 - 2026-05-29
 
 QL 第六阶段发布版本。
