@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.4.0 - 2026-05-29
+
+QL 第四阶段发布版本。
+
+### Added
+
+- 添加 Electron 桌面端入口
+- 添加 Electron preload 脚本
+- 添加 electron-builder Windows NSIS 打包配置
+- 添加 Windows 应用图标资源
+- 添加 `desktop:start` 本地桌面启动脚本
+- 添加 `desktop:pack` Windows unpacked exe 构建脚本
+- 添加 `desktop:dist` Windows exe 安装包构建脚本
+- 在 `file://` 桌面环境下自动使用 HashRouter
+- 在 Electron 本地文件环境下跳过 Service Worker 注册
+- 更新 README、版本说明和 package 元信息
+
+### Notes
+
+- Electron 桌面端复用同一份 React + Vite 前端构建产物
+- 当前已验证 Windows x64 unpacked exe 构建
+- 当前构建未做代码签名
+- NSIS 安装包构建依赖 electron-builder 官方 NSIS 工具下载
+- 书籍和阅读设置仍保存在 Electron Chromium 的本地 IndexedDB / localStorage
+
 ## v0.3.0 - 2026-05-28
 
 QL 第三阶段发布版本。

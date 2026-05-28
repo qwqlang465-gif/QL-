@@ -1,15 +1,17 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, HashRouter } from "react-router-dom";
 import App from "./App";
 import { registerServiceWorker } from "./utils/registerServiceWorker";
 import "./styles/index.css";
 
+const Router = window.location.protocol === "file:" ? HashRouter : BrowserRouter;
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <Router>
       <App />
-    </BrowserRouter>
+    </Router>
   </React.StrictMode>,
 );
 

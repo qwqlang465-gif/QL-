@@ -1,9 +1,11 @@
 {
   "name": "ql",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "一个极简、美观、私密的本地 TXT / EPUB 小说阅读器。",
+  "author": "qwqlang465-gif",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
   "repository": {
     "type": "git",
     "url": "https://github.com/qwqlang465-gif/QL-.git"
@@ -18,12 +20,16 @@
     "local-first",
     "react",
     "vite",
-    "indexeddb"
+    "indexeddb",
+    "electron"
   ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop:start": "npm run build && electron .",
+    "desktop:pack": "npm run build && electron-builder --config electron-builder.config.cjs --win dir",
+    "desktop:dist": "npm run build && electron-builder --config electron-builder.config.cjs --win nsis"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",
@@ -39,6 +45,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.8.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",

@@ -1,5 +1,9 @@
 export function registerServiceWorker(): void {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
+  if (
+    !import.meta.env.PROD ||
+    !("serviceWorker" in navigator) ||
+    window.location.protocol === "file:"
+  ) {
     return;
   }
 
