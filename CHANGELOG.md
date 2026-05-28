@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.8.1 - 2026-05-29
+
+QL Android APK workflow 修复版本。
+
+### Fixed
+
+- GitHub Actions APK 构建改用 `npx cap copy android` 复制 Web 产物，避免 CI 中 `cap sync` 额外更新步骤失败
+- Android 原生版本号更新为 `0.8.1`
+
+### Notes
+
+- 本机仍缺少 JDK 21 / Android SDK，APK 原生构建继续交给 GitHub Actions 执行
+- `npm run build`、`npm run cap:sync` 和 `npm run desktop:pack` 已在本机验证
+
 ## v0.8.0 - 2026-05-29
 
 QL Android APK 自动构建版本。
