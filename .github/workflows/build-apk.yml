@@ -102,8 +102,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows unpacked exe
-        run: npm run desktop:pack
+      - name: Build web assets
+        run: npm run build
+
+      - name: Package Windows portable exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $appOut = "release\win-unpacked"
+          $resourcesApp = Join-Path $appOut "resources\app"
+
+          Remove-Item -Recurse -Force $appOut -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $appOut | Out-Null
+          Copy-Item -Path "node_modules\electron\dist\*" -Destination $appOut -Recurse -Force
+
+          if (Test-Path (Join-Path $appOut "electron.exe")) {
+            Rename-Item -Path (Join-Path $appOut "electron.exe") -NewName "QL.exe" -Force
+          }
+
+          Remove-Item -Force (Join-Path $appOut "resources\default_app.asar") -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $resourcesApp | Out-Null
+          Copy-Item -Path "dist" -Destination (Join-Path $resourcesApp "dist") -Recurse -Force
+          Copy-Item -Path "electron" -Destination (Join-Path $resourcesApp "electron") -Recurse -Force
+          Copy-Item -Path "package.json" -Destination (Join-Path $resourcesApp "package.json") -Force
 
       - name: Collect Windows exe
         shell: pwsh

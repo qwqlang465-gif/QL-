@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.3 - 2026-05-29
+
+QL Windows exe 发布 workflow 修复版本。
+
+### Fixed
+
+- Windows exe workflow 改为使用 npm 已安装的 Electron dist 组装 portable `QL.exe`
+- GitHub Release 中的 Windows 产物不再依赖 CI 运行 electron-builder
+- 本地 `desktop:pack` 继续使用 electron-builder 和已安装的 Electron dist，减少重复下载
+- Android 原生版本号更新为 `0.8.3`
+
+### Notes
+
+- `v0.8.2` 的 Android APK job 已在 GitHub Actions 成功
+- 本版本继续让 Release 自动发布 Windows exe zip 和 Android APK
+
 ## v0.8.2 - 2026-05-29
 
 QL exe + APK 发布 workflow 修复版本。
