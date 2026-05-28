@@ -4,6 +4,8 @@ export interface Chapter {
   content: string;
 }
 
+export type BookFormat = "txt" | "epub";
+
 export interface BookProgress {
   chapterId: string;
   chapterIndex: number;
@@ -19,6 +21,7 @@ export interface BookMeta {
   updatedAt: number;
   chapterCount: number;
   progress: BookProgress;
+  format?: BookFormat;
   encoding?: string;
 }
 
@@ -30,6 +33,7 @@ export interface Book {
   updatedAt: number;
   chapters: Chapter[];
   progress: BookProgress;
+  format?: BookFormat;
   encoding?: string;
 }
 

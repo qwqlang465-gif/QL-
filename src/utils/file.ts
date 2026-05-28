@@ -1,15 +1,31 @@
+import type { BookFormat } from "../types/book";
+
 const SUPPORTED_ENCODINGS: Record<string, string> = {
   "utf-8": "utf-8",
   utf8: "utf-8",
   gb18030: "gb18030",
 };
 
+export function getFileFormat(file: File): BookFormat | undefined {
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.endsWith(".epub") || file.type === "application/epub+zip") {
+    return "epub";
+  }
+
+  if (fileName.endsWith(".txt") || file.type === "text/plain") {
+    return "txt";
+  }
+
+  return undefined;
+}
+
 export async function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
   try {
     return await file.arrayBuffer();
   } catch (error) {
     console.error("Failed to read file as ArrayBuffer.", error);
-    throw new Error("读取 TXT 文件失败，请重新选择文件。");
+    throw new Error("读取文件失败，请重新选择文件。");
   }
 }
 

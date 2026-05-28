@@ -1,3 +1,5 @@
+import type { BookFormat } from "../types/book";
+
 export function formatDate(timestamp: number): string {
   if (!timestamp) {
     return "暂无";
@@ -26,6 +28,14 @@ export function formatEncoding(encoding?: string): string {
   }
 
   return encoding.toUpperCase();
+}
+
+export function formatBookFormat(format?: BookFormat): string {
+  if (format === "epub") {
+    return "EPUB";
+  }
+
+  return "TXT";
 }
 
 export function getFileBaseName(fileName: string): string {

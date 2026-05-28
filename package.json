@@ -1,7 +1,7 @@
 {
   "name": "ql",
-  "version": "0.2.0",
-  "description": "一个极简、美观、私密的本地 TXT 小说阅读器。",
+  "version": "0.3.0",
+  "description": "一个极简、美观、私密的本地 TXT / EPUB 小说阅读器。",
   "private": true,
   "type": "module",
   "repository": {
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.468.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

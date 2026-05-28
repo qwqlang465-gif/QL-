@@ -34,7 +34,7 @@ export function ImportButton({ loading, onImport, buttonRef }: ImportButtonProps
   return (
     <div className="flex flex-wrap items-center gap-3">
       <label className="inline-flex min-h-11 items-center gap-2 rounded-full bg-reader-card px-4 text-sm text-reader-muted shadow-shelf">
-        <span>编码</span>
+        <span>TXT 编码</span>
         <select
           value={encoding}
           onChange={(event) => setEncoding(event.target.value)}
@@ -52,7 +52,7 @@ export function ImportButton({ loading, onImport, buttonRef }: ImportButtonProps
       <input
         ref={inputRef}
         type="file"
-        accept=".txt,text/plain"
+        accept=".txt,.epub,text/plain,application/epub+zip"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -65,7 +65,7 @@ export function ImportButton({ loading, onImport, buttonRef }: ImportButtonProps
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-white shadow-shelf transition hover:bg-primary-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Upload size={18} />
-        {loading ? "导入中..." : "导入 TXT 小说"}
+        {loading ? "导入中..." : "导入 TXT / EPUB"}
       </button>
     </div>
   );

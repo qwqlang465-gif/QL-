@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.0 - 2026-05-28
+
+QL 第三阶段发布版本。
+
+### Added
+
+- 添加 EPUB 文件导入支持
+- 使用 JSZip 在浏览器本地读取 EPUB 压缩包
+- 解析 `META-INF/container.xml` 和 OPF package 文件
+- 按 OPF spine 顺序生成阅读章节
+- 支持 EPUB3 nav 和 EPUB2 NCX 目录标题提取
+- 书架显示 TXT / EPUB 文件格式
+- 导入按钮支持 `.txt` 和 `.epub`
+- EPUB 章节正文继续保存到 IndexedDB
+- 更新 README、版本说明和 PWA 缓存版本
+
+### Notes
+
+- EPUB 解析在浏览器本地完成，不上传文件
+- 当前版本提取 EPUB 文本正文，不渲染 EPUB 内嵌样式、图片或脚注交互
+
 ## v0.2.0 - 2026-05-28
 
 QL 第二阶段发布版本。

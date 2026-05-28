@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import type { BookMeta } from "../types/book";
 import {
+  formatBookFormat,
   formatChapterCount,
   formatDate,
   formatEncoding,
@@ -77,7 +78,10 @@ export function BookCard({ book, progressTitle, onDelete }: BookCardProps) {
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-reader-muted">
           <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatChapterCount(book.chapterCount)}</span>
-          <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatEncoding(book.encoding)}</span>
+          <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatBookFormat(book.format)}</span>
+          {book.format !== "epub" ? (
+            <span className="rounded-full bg-[#f3eadf] px-3 py-1">{formatEncoding(book.encoding)}</span>
+          ) : null}
           <span className="rounded-full bg-[#f3eadf] px-3 py-1">上次 {formatDate(book.updatedAt)}</span>
         </div>
       </div>

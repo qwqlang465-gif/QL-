@@ -1,4 +1,4 @@
-const CACHE_VERSION = "ql-pwa-v0.2.0";
+const CACHE_VERSION = "ql-pwa-v0.3.0";
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 

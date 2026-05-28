@@ -13,7 +13,7 @@ export function EmptyState({ onImport }: EmptyStateProps) {
         </div>
         <h2 className="mt-7 text-2xl font-semibold tracking-normal text-reader-ink">书架还很安静</h2>
         <p className="mt-3 text-sm leading-7 text-reader-muted">
-          导入一本 TXT 小说，QL 会把章节和进度保存在浏览器本地。
+          导入一本 TXT 或 EPUB 小说，QL 会把章节和进度保存在浏览器本地。
         </p>
         <button
           type="button"
@@ -21,7 +21,7 @@ export function EmptyState({ onImport }: EmptyStateProps) {
           className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-white shadow-shelf transition hover:bg-primary-hover active:scale-[0.98]"
         >
           <Upload size={18} />
-          导入 TXT 小说
+          导入 TXT / EPUB
         </button>
       </div>
     </section>

@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import type { Book, BookMeta, BookProgress } from "../types/book";
-import { readTextFile } from "../utils/file";
+import { fileToArrayBuffer, getFileFormat, readTextFile } from "../utils/file";
 import { getFileBaseName } from "../utils/format";
+import { parseEpub } from "../utils/parseEpub";
 import { parseTxt } from "../utils/parseTxt";
 import {
   deleteBookChapters,
@@ -60,11 +61,24 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const text = await readTextFile(file, encoding);
-      const chapters = parseTxt(text);
+      const format = getFileFormat(file);
+
+      if (!format) {
+        throw new Error("暂时只支持导入 TXT 或 EPUB 文件。");
+      }
+
+      const parsedBook =
+        format === "epub"
+          ? await parseEpub(await fileToArrayBuffer(file))
+          : {
+              title: undefined,
+              chapters: parseTxt(await readTextFile(file, encoding)),
+            };
+
+      const chapters = parsedBook.chapters;
       const now = Date.now();
       const bookId = createBookId();
-      const name = getFileBaseName(file.name);
+      const name = parsedBook.title?.trim() || getFileBaseName(file.name);
       const progress: BookProgress = {
         chapterId: chapters[0]?.id ?? "chapter-0",
         chapterIndex: 0,
@@ -80,7 +94,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         updatedAt: now,
         chapterCount: chapters.length,
         progress,
-        encoding,
+        format,
+        encoding: format === "txt" ? encoding : undefined,
       };
 
       await saveBookChapters(bookId, chapters);
@@ -92,7 +107,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       set({ bookMetas: nextMetas, loading: false });
     } catch (error) {
       set({
-        error: getErrorMessage(error, "导入 TXT 小说失败，请检查文件或编码后重试。"),
+        error: getErrorMessage(error, "导入小说失败，请检查文件格式后重试。"),
         loading: false,
       });
     }
@@ -159,6 +174,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         updatedAt: meta.updatedAt,
         chapters,
         progress: meta.progress,
+        format: meta.format,
         encoding: meta.encoding,
       };
     } catch (error) {
