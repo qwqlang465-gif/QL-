@@ -12,7 +12,7 @@ function createMainWindow() {
     title: "QL",
     backgroundColor: "#f4ecd8",
     autoHideMenuBar: true,
-    show: false,
+    show: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -21,8 +21,18 @@ function createMainWindow() {
     },
   });
 
-  window.once("ready-to-show", () => {
-    window.show();
+  window.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`QL failed to load ${validatedURL}: ${errorCode} ${errorDescription}`);
+  });
+
+  window.webContents.on("render-process-gone", (_event, details) => {
+    console.error("QL renderer process exited.", details);
+  });
+
+  window.webContents.once("did-finish-load", () => {
+    if (!window.isVisible()) {
+      window.show();
+    }
   });
 
   window.webContents.setWindowOpenHandler(({ url }) => {

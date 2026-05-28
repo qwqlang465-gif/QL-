@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.7.1 - 2026-05-29
+
+QL 第七阶段补丁版本。
+
+### Fixed
+
+- 修复 Electron 桌面端 unpacked exe 打开后白屏的问题
+- Vite 生产构建改为相对资源路径，确保 `file://` 环境可以正确加载 JS 和 CSS
+- 首页 manifest 和图标链接改为相对路径，提升桌面壳兼容性
+- Electron 主窗口改为立即显示，并记录加载失败和渲染进程退出日志，避免白屏问题静默发生
+
+### Notes
+
+- `npm run build` 已通过验证
+- `npm run desktop:pack` 已通过验证
+- 修复后的 `release/win-unpacked/QL.exe` 已通过 Electron 调试协议确认页面内容完成渲染
+
 ## v0.7.0 - 2026-05-29
 
 QL 第七阶段发布版本。
