@@ -303,11 +303,26 @@ function normalizeReaderSettings(value: unknown): ReaderSettings | undefined {
     return undefined;
   }
 
-  const fontFamily = value.fontFamily === "sans" || value.fontFamily === "mono" ? value.fontFamily : "serif";
-  const theme =
-    value.theme === "light" || value.theme === "dark" || value.theme === "green" || value.theme === "paper"
-      ? value.theme
-      : "paper";
+  const fontFamilies: ReaderSettings["fontFamily"][] = ["system", "sans", "serif", "kai", "mono"];
+  const themes: ReaderSettings["theme"][] = ["light", "paper", "green", "warm", "blue", "dark", "night"];
+  const fontWeights: ReaderSettings["fontWeight"][] = ["light", "regular", "medium", "bold"];
+  const pageTurnModes: ReaderSettings["pageTurnMode"][] = ["cover", "slide", "simulation", "scroll", "none"];
+  const textAligns: ReaderSettings["textAlign"][] = ["start", "justify"];
+  const fontFamily = fontFamilies.includes(value.fontFamily as ReaderSettings["fontFamily"])
+    ? (value.fontFamily as ReaderSettings["fontFamily"])
+    : "system";
+  const theme = themes.includes(value.theme as ReaderSettings["theme"])
+    ? (value.theme as ReaderSettings["theme"])
+    : "paper";
+  const fontWeight = fontWeights.includes(value.fontWeight as ReaderSettings["fontWeight"])
+    ? (value.fontWeight as ReaderSettings["fontWeight"])
+    : "regular";
+  const pageTurnMode = pageTurnModes.includes(value.pageTurnMode as ReaderSettings["pageTurnMode"])
+    ? (value.pageTurnMode as ReaderSettings["pageTurnMode"])
+    : "cover";
+  const textAlign = textAligns.includes(value.textAlign as ReaderSettings["textAlign"])
+    ? (value.textAlign as ReaderSettings["textAlign"])
+    : "justify";
 
   return {
     fontSize: clamp(asNumber(value.fontSize, 18), 14, 28),
@@ -315,6 +330,17 @@ function normalizeReaderSettings(value: unknown): ReaderSettings | undefined {
     contentWidth: clamp(asNumber(value.contentWidth, 760), 560, 960),
     fontFamily,
     theme,
+    fontWeight,
+    letterSpacing: clamp(asNumber(value.letterSpacing, 0), 0, 4),
+    paragraphSpacing: clamp(asNumber(value.paragraphSpacing, 1.05), 0.5, 2.2),
+    textAlign,
+    textBottomAlign: Boolean(value.textBottomAlign),
+    pageTurnMode,
+    keepScreenOn: Boolean(value.keepScreenOn),
+    edgeToEdge: value.edgeToEdge === undefined ? true : Boolean(value.edgeToEdge),
+    hideStatusBar: Boolean(value.hideStatusBar),
+    hideNavigationBar: Boolean(value.hideNavigationBar),
+    volumeKeyPageTurn: Boolean(value.volumeKeyPageTurn),
   };
 }
 

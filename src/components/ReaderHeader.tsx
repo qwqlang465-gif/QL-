@@ -28,10 +28,15 @@ export function ReaderHeader({
           <div className="truncate text-sm font-medium">{title}</div>
           <div className="reader-muted mt-0.5 truncate text-xs">{subtitle}</div>
         </div>
-        <IconButton icon={<Search size={20} />} label="搜索" onClick={onOpenSearch} />
-        <IconButton icon={<List size={20} />} label="目录" onClick={onOpenChapters} />
-        <IconButton icon={<Bookmark size={20} />} label="书签" onClick={onOpenBookmarks} />
-        <IconButton icon={<SlidersHorizontal size={20} />} label="设置" onClick={onOpenSettings} />
+        <IconButton icon={<Search size={20} />} label="搜索" onClick={onOpenSearch} className="hidden sm:inline-flex" />
+        <IconButton icon={<List size={20} />} label="目录" onClick={onOpenChapters} className="hidden sm:inline-flex" />
+        <IconButton icon={<Bookmark size={20} />} label="书签" onClick={onOpenBookmarks} className="hidden sm:inline-flex" />
+        <IconButton
+          icon={<SlidersHorizontal size={20} />}
+          label="设置"
+          onClick={onOpenSettings}
+          className="hidden sm:inline-flex"
+        />
       </div>
     </header>
   );

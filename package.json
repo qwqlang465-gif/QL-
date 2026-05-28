@@ -1,6 +1,6 @@
 {
   "name": "ql",
-  "version": "0.8.4",
+  "version": "0.9.0",
   "description": "一个极简、美观、私密的本地 TXT / EPUB 小说阅读器。",
   "author": "qwqlang465-gif",
   "private": true,

@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type { Book, Bookmark, ReaderSettings, ReaderTheme, SearchResult } from "../types/book";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { useReaderSettingsStore } from "../store/useReaderSettingsStore";
 import { formatProgressPercent } from "../utils/format";
+import { applyMobileReaderControls, subscribeVolumePageTurn } from "../utils/mobileControls";
 import { searchChapters, splitParagraphs, splitTextByQuery } from "../utils/search";
 import { throttle } from "../utils/throttle";
 import { BookmarkPanel } from "./BookmarkPanel";
 import { ChapterSidebar } from "./ChapterSidebar";
 import { ReaderBottomBar } from "./ReaderBottomBar";
 import { ReaderHeader } from "./ReaderHeader";
+import { ReaderMorePanel } from "./ReaderMorePanel";
 import { ReaderSearchPanel } from "./ReaderSearchPanel";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 
@@ -36,6 +38,10 @@ type ReaderThemeStyle = CSSProperties & {
   "--reader-shadow": string;
 };
 
+type ReaderArticleStyle = CSSProperties & {
+  "--reader-paragraph-spacing": string;
+};
+
 const themePalette: Record<ReaderTheme, ThemePalette> = {
   light: {
     background: "#f6f4ef",
@@ -45,10 +51,18 @@ const themePalette: Record<ReaderTheme, ThemePalette> = {
     line: "rgba(71, 58, 45, 0.12)",
     shadow: "rgba(64, 46, 30, 0.12)",
   },
+  paper: {
+    background: "#f4ecd8",
+    text: "#3a2f24",
+    panel: "#fbf3df",
+    muted: "#806b58",
+    line: "rgba(82, 59, 36, 0.13)",
+    shadow: "rgba(82, 59, 36, 0.13)",
+  },
   dark: {
-    background: "#111827",
+    background: "#1b2029",
     text: "#d1d5db",
-    panel: "#1f2937",
+    panel: "#252d3a",
     muted: "#9ca3af",
     line: "rgba(209, 213, 219, 0.12)",
     shadow: "rgba(0, 0, 0, 0.36)",
@@ -61,20 +75,46 @@ const themePalette: Record<ReaderTheme, ThemePalette> = {
     line: "rgba(38, 51, 40, 0.12)",
     shadow: "rgba(43, 67, 38, 0.12)",
   },
-  paper: {
-    background: "#f4ecd8",
-    text: "#3a2f24",
-    panel: "#fbf3df",
-    muted: "#806b58",
-    line: "rgba(82, 59, 36, 0.13)",
-    shadow: "rgba(82, 59, 36, 0.13)",
+  warm: {
+    background: "#fff0e6",
+    text: "#3b2a22",
+    panel: "#fff7ef",
+    muted: "#8a6758",
+    line: "rgba(96, 54, 34, 0.12)",
+    shadow: "rgba(96, 54, 34, 0.13)",
+  },
+  blue: {
+    background: "#eaf1f7",
+    text: "#243241",
+    panel: "#f6fbff",
+    muted: "#607286",
+    line: "rgba(36, 50, 65, 0.12)",
+    shadow: "rgba(36, 50, 65, 0.12)",
+  },
+  night: {
+    background: "#0b1020",
+    text: "#b9c3d4",
+    panel: "#121827",
+    muted: "#7f8aa0",
+    line: "rgba(185, 195, 212, 0.1)",
+    shadow: "rgba(0, 0, 0, 0.48)",
   },
 };
 
 const fontFamilyMap: Record<ReaderSettings["fontFamily"], string> = {
-  serif: 'Georgia, "Times New Roman", "Noto Serif SC", "Songti SC", serif',
-  sans: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif',
+  system:
+    '-apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Noto Sans SC", system-ui, sans-serif',
+  sans: '"PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Noto Sans SC", system-ui, sans-serif',
+  serif: '"Noto Serif SC", "Source Han Serif SC", "Songti SC", STSong, SimSun, Georgia, serif',
+  kai: '"Kaiti SC", STKaiti, KaiTi, "BiauKai", serif',
   mono: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
+};
+
+const fontWeightMap: Record<ReaderSettings["fontWeight"], number> = {
+  light: 300,
+  regular: 400,
+  medium: 500,
+  bold: 700,
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -87,6 +127,14 @@ function clampChapterIndex(index: number, maxLength: number): number {
   }
 
   return Math.min(Math.max(index, 0), maxLength - 1);
+}
+
+function getMaxScrollTop(): number {
+  return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+}
+
+function isInteractiveReaderTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(target.closest("button, a, input, select, textarea, summary, [role='button']"));
 }
 
 export function Reader({ book }: ReaderProps) {
@@ -105,9 +153,20 @@ export function Reader({ book }: ReaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [morePanelOpen, setMorePanelOpen] = useState(false);
   const [readingPercent, setReadingPercent] = useState(book.progress.percent ?? 0);
   const isRestoringScrollRef = useRef(true);
   const pendingParagraphScrollRef = useRef<number | null>(null);
+  const pendingChapterEndScrollRef = useRef(false);
+  const pageTurnStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const pageTurnEffectTimerRef = useRef<number | null>(null);
+  const turnPageRef = useRef<(direction: "previous" | "next") => void>(() => undefined);
+  const lastDayThemeRef = useRef<ReaderTheme>(settings.theme === "night" ? "paper" : settings.theme);
+  const [pageTurnEffect, setPageTurnEffect] = useState<{
+    id: number;
+    direction: "previous" | "next";
+    mode: ReaderSettings["pageTurnMode"];
+  } | null>(null);
   const currentProgressRef = useRef({
     chapterIndex: initialChapterIndex,
     chapterId: book.chapters[initialChapterIndex]?.id ?? "chapter-0",
@@ -129,11 +188,20 @@ export function Reader({ book }: ReaderProps) {
     color: palette.text,
   };
 
-  const articleStyle: CSSProperties = {
+  const articleStyle: ReaderArticleStyle = {
+    "--reader-paragraph-spacing": `${settings.paragraphSpacing}em`,
     maxWidth: settings.contentWidth,
     fontSize: settings.fontSize,
     lineHeight: settings.lineHeight,
     fontFamily: fontFamilyMap[settings.fontFamily],
+    fontWeight: fontWeightMap[settings.fontWeight],
+    letterSpacing: settings.letterSpacing,
+    textAlign: settings.textAlign === "justify" ? "justify" : "start",
+    textJustify: settings.textAlign === "justify" ? "auto" : undefined,
+    minHeight: settings.textBottomAlign ? "calc(100vh - 14rem)" : undefined,
+    display: settings.textBottomAlign ? "flex" : undefined,
+    flexDirection: settings.textBottomAlign ? "column" : undefined,
+    justifyContent: settings.textBottomAlign ? "flex-end" : undefined,
   };
 
   const getReadingPercent = (chapterIndex: number, scrollTop: number) => {
@@ -184,8 +252,140 @@ export function Reader({ book }: ReaderProps) {
     setCurrentChapterIndex(nextIndex);
     setChapterSidebarOpen(false);
     setSettingsPanelOpen(false);
+    setMorePanelOpen(false);
     saveProgress(nextIndex, scrollTop);
     restoreScroll(scrollTop);
+  };
+
+  const triggerPageTurnEffect = (direction: "previous" | "next") => {
+    if (settings.pageTurnMode === "scroll" || settings.pageTurnMode === "none") {
+      return;
+    }
+
+    if (pageTurnEffectTimerRef.current !== null) {
+      window.clearTimeout(pageTurnEffectTimerRef.current);
+    }
+
+    setPageTurnEffect({
+      id: Date.now(),
+      direction,
+      mode: settings.pageTurnMode,
+    });
+
+    pageTurnEffectTimerRef.current = window.setTimeout(() => {
+      setPageTurnEffect(null);
+      pageTurnEffectTimerRef.current = null;
+    }, 320);
+  };
+
+  const finishManualPageScroll = (delay = 360) => {
+    window.setTimeout(() => {
+      isRestoringScrollRef.current = false;
+      const progress = currentProgressRef.current;
+      saveProgress(progress.chapterIndex, window.scrollY);
+    }, delay);
+  };
+
+  const turnPage = (direction: "previous" | "next") => {
+    if (chapterSidebarOpen || bookmarkPanelOpen || searchPanelOpen || settingsPanelOpen || morePanelOpen) {
+      return;
+    }
+
+    const currentScrollTop = Math.max(0, window.scrollY);
+    const maxScrollTop = getMaxScrollTop();
+    const pageStep = Math.max(280, window.innerHeight * 0.82);
+    const scrollBehavior: ScrollBehavior = settings.pageTurnMode === "none" ? "auto" : "smooth";
+    const effectDelay = settings.pageTurnMode === "cover" || settings.pageTurnMode === "slide" || settings.pageTurnMode === "simulation"
+      ? 90
+      : 0;
+
+    triggerPageTurnEffect(direction);
+
+    if (direction === "next") {
+      if (currentScrollTop >= maxScrollTop - 28) {
+        if (currentChapterIndex < book.chapters.length - 1) {
+          window.setTimeout(() => goToChapter(currentChapterIndex + 1, 0), effectDelay);
+        }
+        return;
+      }
+
+      isRestoringScrollRef.current = true;
+      window.setTimeout(() => {
+        window.scrollTo({ top: Math.min(maxScrollTop, currentScrollTop + pageStep), behavior: scrollBehavior });
+        finishManualPageScroll(settings.pageTurnMode === "none" ? 80 : 360);
+      }, effectDelay);
+      return;
+    }
+
+    if (currentScrollTop <= 28) {
+      if (currentChapterIndex > 0) {
+        pendingChapterEndScrollRef.current = true;
+        window.setTimeout(() => goToChapter(currentChapterIndex - 1, 0), effectDelay);
+      }
+      return;
+    }
+
+    isRestoringScrollRef.current = true;
+    window.setTimeout(() => {
+      window.scrollTo({ top: Math.max(0, currentScrollTop - pageStep), behavior: scrollBehavior });
+      finishManualPageScroll(settings.pageTurnMode === "none" ? 80 : 360);
+    }, effectDelay);
+  };
+
+  turnPageRef.current = turnPage;
+
+  const handleReaderPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+
+    if (isInteractiveReaderTarget(event.target)) {
+      pageTurnStartRef.current = null;
+      return;
+    }
+
+    pageTurnStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      time: window.performance.now(),
+    };
+  };
+
+  const handleReaderPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
+    const start = pageTurnStartRef.current;
+    pageTurnStartRef.current = null;
+
+    if (!start || isInteractiveReaderTarget(event.target)) {
+      return;
+    }
+
+    const selectedText = window.getSelection()?.toString().trim();
+    if (selectedText) {
+      return;
+    }
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    const absoluteX = Math.abs(deltaX);
+    const absoluteY = Math.abs(deltaY);
+    const elapsed = window.performance.now() - start.time;
+    const horizontalSwipe = absoluteX > 58 && absoluteX > absoluteY * 1.25;
+
+    if (horizontalSwipe) {
+      turnPage(deltaX < 0 ? "next" : "previous");
+      return;
+    }
+
+    const isTap = absoluteX < 14 && absoluteY < 14 && elapsed < 520;
+    if (!isTap) {
+      return;
+    }
+
+    if (event.clientX <= window.innerWidth * 0.36) {
+      turnPage("previous");
+    } else if (event.clientX >= window.innerWidth * 0.64) {
+      turnPage("next");
+    }
   };
 
   const scrollToParagraph = (paragraphIndex: number) => {
@@ -255,6 +455,31 @@ export function Reader({ book }: ReaderProps) {
     setBookmarkPanelOpen(false);
   };
 
+  const handleOpenSearchFromMore = () => {
+    setMorePanelOpen(false);
+    setSearchPanelOpen(true);
+  };
+
+  const handleOpenBookmarksFromMore = () => {
+    setMorePanelOpen(false);
+    setBookmarkPanelOpen(true);
+  };
+
+  const handleAddBookmarkFromMore = () => {
+    void handleAddBookmark();
+    setMorePanelOpen(false);
+  };
+
+  const toggleNightTheme = () => {
+    if (settings.theme === "night") {
+      updateSettings({ theme: lastDayThemeRef.current });
+      return;
+    }
+
+    lastDayThemeRef.current = settings.theme;
+    updateSettings({ theme: "night" });
+  };
+
   const renderParagraph = (paragraph: string, index: number) => {
     const parts = splitTextByQuery(paragraph, activeSearchQuery);
     return (
@@ -309,6 +534,21 @@ export function Reader({ book }: ReaderProps) {
     // scrollToParagraph intentionally reads the freshly rendered chapter DOM.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentChapterIndex, paragraphs]);
+
+  useEffect(() => {
+    if (!pendingChapterEndScrollRef.current) {
+      return;
+    }
+
+    pendingChapterEndScrollRef.current = false;
+    window.setTimeout(() => {
+      const targetScrollTop = getMaxScrollTop();
+      restoreScroll(targetScrollTop);
+      finishManualPageScroll(420);
+    }, 80);
+    // finishManualPageScroll and restoreScroll intentionally read current document layout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChapterIndex, paragraphs.length]);
 
   useEffect(() => {
     const activeChapter = book.chapters[currentChapterIndex];
@@ -378,12 +618,40 @@ export function Reader({ book }: ReaderProps) {
         setBookmarkPanelOpen(false);
         setSearchPanelOpen(false);
         setSettingsPanelOpen(false);
+        setMorePanelOpen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (settings.theme !== "night") {
+      lastDayThemeRef.current = settings.theme;
+    }
+  }, [settings.theme]);
+
+  useEffect(() => {
+    void applyMobileReaderControls(settings);
+  }, [
+    settings.edgeToEdge,
+    settings.hideNavigationBar,
+    settings.hideStatusBar,
+    settings.keepScreenOn,
+    settings.volumeKeyPageTurn,
+  ]);
+
+  useEffect(() => subscribeVolumePageTurn((direction) => turnPageRef.current(direction)), []);
+
+  useEffect(
+    () => () => {
+      if (pageTurnEffectTimerRef.current !== null) {
+        window.clearTimeout(pageTurnEffectTimerRef.current);
+      }
+    },
+    [],
+  );
 
   if (!currentChapter) {
     return (
@@ -411,10 +679,20 @@ export function Reader({ book }: ReaderProps) {
         onOpenSearch={() => setSearchPanelOpen(true)}
         onOpenChapters={() => setChapterSidebarOpen(true)}
         onOpenBookmarks={() => setBookmarkPanelOpen(true)}
-        onOpenSettings={() => setSettingsPanelOpen(true)}
+        onOpenSettings={() => setMorePanelOpen(true)}
       />
 
-      <main className="px-5 pb-32 pt-24 sm:px-8">
+      <main
+        className={[
+          "reader-page-touch px-5 pb-32 pt-24 sm:px-8",
+          pageTurnEffect?.mode === "slide" ? `reader-slide-${pageTurnEffect.direction}` : "",
+        ].join(" ")}
+        onPointerDown={handleReaderPointerDown}
+        onPointerUp={handleReaderPointerUp}
+        onPointerCancel={() => {
+          pageTurnStartRef.current = null;
+        }}
+      >
         <article className="reader-prose mx-auto w-full" style={articleStyle}>
           <h1 className="mb-10 text-center text-[1.25em] font-semibold leading-relaxed tracking-normal">
             {currentChapter.title}
@@ -451,15 +729,22 @@ export function Reader({ book }: ReaderProps) {
         </article>
       </main>
 
+      {pageTurnEffect && pageTurnEffect.mode !== "slide" ? (
+        <div
+          key={pageTurnEffect.id}
+          className={[
+            "reader-page-turn fixed inset-0 z-20 pointer-events-none",
+            `reader-page-turn-${pageTurnEffect.mode}-${pageTurnEffect.direction}`,
+          ].join(" ")}
+        />
+      ) : null}
+
       <ReaderBottomBar
-        onPrevious={() => goToChapter(currentChapterIndex - 1)}
-        onNext={() => goToChapter(currentChapterIndex + 1)}
-        onOpenSearch={() => setSearchPanelOpen(true)}
         onOpenChapters={() => setChapterSidebarOpen(true)}
-        onOpenBookmarks={() => setBookmarkPanelOpen(true)}
-        onOpenSettings={() => setSettingsPanelOpen(true)}
-        previousDisabled={currentChapterIndex === 0}
-        nextDisabled={currentChapterIndex >= book.chapters.length - 1}
+        onOpenAppearance={() => setSettingsPanelOpen(true)}
+        onOpenMore={() => setMorePanelOpen(true)}
+        onToggleNight={toggleNightTheme}
+        isNightMode={settings.theme === "night"}
       />
 
       <ReaderSearchPanel
@@ -486,6 +771,21 @@ export function Reader({ book }: ReaderProps) {
         onSelectBookmark={handleSelectBookmark}
         onDeleteBookmark={handleDeleteBookmark}
         onClose={() => setBookmarkPanelOpen(false)}
+      />
+
+      <ReaderMorePanel
+        open={morePanelOpen}
+        settings={settings}
+        onClose={() => setMorePanelOpen(false)}
+        onBack={() => navigate("/")}
+        onPrevious={() => goToChapter(currentChapterIndex - 1)}
+        onNext={() => goToChapter(currentChapterIndex + 1)}
+        onOpenSearch={handleOpenSearchFromMore}
+        onOpenBookmarks={handleOpenBookmarksFromMore}
+        onAddBookmark={handleAddBookmarkFromMore}
+        onUpdateSettings={updateSettings}
+        previousDisabled={currentChapterIndex === 0}
+        nextDisabled={currentChapterIndex >= book.chapters.length - 1}
       />
 
       <ReaderSettingsPanel

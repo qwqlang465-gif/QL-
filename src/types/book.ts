@@ -59,9 +59,15 @@ export interface SearchResult {
   excerpt: string;
 }
 
-export type ReaderTheme = "light" | "dark" | "green" | "paper";
+export type ReaderTheme = "light" | "paper" | "green" | "warm" | "blue" | "dark" | "night";
 
-export type FontFamily = "serif" | "sans" | "mono";
+export type FontFamily = "system" | "sans" | "serif" | "kai" | "mono";
+
+export type ReaderFontWeight = "light" | "regular" | "medium" | "bold";
+
+export type ReaderPageTurnMode = "cover" | "slide" | "simulation" | "scroll" | "none";
+
+export type ReaderTextAlign = "start" | "justify";
 
 export interface ReaderSettings {
   fontSize: number;
@@ -69,4 +75,15 @@ export interface ReaderSettings {
   contentWidth: number;
   fontFamily: FontFamily;
   theme: ReaderTheme;
+  fontWeight: ReaderFontWeight;
+  letterSpacing: number;
+  paragraphSpacing: number;
+  textAlign: ReaderTextAlign;
+  textBottomAlign: boolean;
+  pageTurnMode: ReaderPageTurnMode;
+  keepScreenOn: boolean;
+  edgeToEdge: boolean;
+  hideStatusBar: boolean;
+  hideNavigationBar: boolean;
+  volumeKeyPageTurn: boolean;
 }

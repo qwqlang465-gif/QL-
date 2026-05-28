@@ -1,16 +1,37 @@
 import { create } from "zustand";
-import type { FontFamily, ReaderSettings, ReaderTheme } from "../types/book";
+import type {
+  FontFamily,
+  ReaderFontWeight,
+  ReaderPageTurnMode,
+  ReaderSettings,
+  ReaderTextAlign,
+  ReaderTheme,
+} from "../types/book";
 import { READER_SETTINGS_KEY, safeGetLocalStorage, safeSetLocalStorage } from "../utils/storage";
 
-const fontFamilies: FontFamily[] = ["serif", "sans", "mono"];
-const themes: ReaderTheme[] = ["light", "dark", "green", "paper"];
+const fontFamilies: FontFamily[] = ["system", "sans", "serif", "kai", "mono"];
+const themes: ReaderTheme[] = ["light", "paper", "green", "warm", "blue", "dark", "night"];
+const fontWeights: ReaderFontWeight[] = ["light", "regular", "medium", "bold"];
+const pageTurnModes: ReaderPageTurnMode[] = ["cover", "slide", "simulation", "scroll", "none"];
+const textAligns: ReaderTextAlign[] = ["start", "justify"];
 
 export const defaultReaderSettings: ReaderSettings = {
   fontSize: 18,
   lineHeight: 1.9,
   contentWidth: 760,
-  fontFamily: "serif",
+  fontFamily: "system",
   theme: "paper",
+  fontWeight: "regular",
+  letterSpacing: 0,
+  paragraphSpacing: 1.05,
+  textAlign: "justify",
+  textBottomAlign: false,
+  pageTurnMode: "cover",
+  keepScreenOn: false,
+  edgeToEdge: true,
+  hideStatusBar: false,
+  hideNavigationBar: false,
+  volumeKeyPageTurn: false,
 };
 
 interface ReaderSettingsState {
@@ -31,6 +52,17 @@ function normalizeSettings(value: ReaderSettings): ReaderSettings {
     contentWidth: clamp(Number(value.contentWidth) || defaultReaderSettings.contentWidth, 560, 960),
     fontFamily: fontFamilies.includes(value.fontFamily) ? value.fontFamily : defaultReaderSettings.fontFamily,
     theme: themes.includes(value.theme) ? value.theme : defaultReaderSettings.theme,
+    fontWeight: fontWeights.includes(value.fontWeight) ? value.fontWeight : defaultReaderSettings.fontWeight,
+    letterSpacing: clamp(Number(value.letterSpacing) || 0, 0, 4),
+    paragraphSpacing: clamp(Number(value.paragraphSpacing) || defaultReaderSettings.paragraphSpacing, 0.5, 2.2),
+    textAlign: textAligns.includes(value.textAlign) ? value.textAlign : defaultReaderSettings.textAlign,
+    textBottomAlign: Boolean(value.textBottomAlign),
+    pageTurnMode: pageTurnModes.includes(value.pageTurnMode) ? value.pageTurnMode : defaultReaderSettings.pageTurnMode,
+    keepScreenOn: Boolean(value.keepScreenOn),
+    edgeToEdge: value.edgeToEdge === undefined ? defaultReaderSettings.edgeToEdge : Boolean(value.edgeToEdge),
+    hideStatusBar: Boolean(value.hideStatusBar),
+    hideNavigationBar: Boolean(value.hideNavigationBar),
+    volumeKeyPageTurn: Boolean(value.volumeKeyPageTurn),
   };
 }
 
