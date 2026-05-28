@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { BookShelf } from "../components/BookShelf";
 import { ImportButton } from "../components/ImportButton";
 import { Layout } from "../components/Layout";
+import { PwaInstallButton } from "../components/PwaInstallButton";
 import { useLibraryStore } from "../store/useLibraryStore";
 
 export default function ShelfPage() {
@@ -42,7 +43,10 @@ export default function ShelfPage() {
           <p className="mt-3 text-base leading-7 text-reader-muted">安静地阅读本地小说</p>
         </div>
 
-        <ImportButton loading={loading} onImport={importBook} buttonRef={importButtonRef} />
+        <div className="flex flex-wrap items-center gap-3">
+          <PwaInstallButton />
+          <ImportButton loading={loading} onImport={importBook} buttonRef={importButtonRef} />
+        </div>
       </header>
 
       {error ? (

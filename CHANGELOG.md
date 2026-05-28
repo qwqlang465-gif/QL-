@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.2.0 - 2026-05-28
+
+QL 第二阶段发布版本。
+
+### Added
+
+- 添加 Web App Manifest
+- 添加 PWA 应用图标
+- 添加生产环境 Service Worker 注册
+- 添加应用壳缓存和同源静态资源运行时缓存
+- 添加基础离线访问支持
+- 添加浏览器安装提示按钮
+- 更新 README、package 元信息和版本说明
+
+### Notes
+
+- Service Worker 仅在生产构建中注册，开发环境不启用缓存
+- 当前 PWA 支持聚焦网页版安装与基础离线访问，不涉及 Electron、Tauri、Capacitor、exe 或 apk
+
 ## v0.1.0 - 2026-05-28
 
 QL 第一阶段发布版本。

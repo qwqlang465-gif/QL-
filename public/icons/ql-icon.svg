@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">QL</title>
+  <desc id="desc">QL local novel reader icon</desc>
+  <rect width="512" height="512" rx="112" fill="#ef6a4d"/>
+  <path d="M158 116h196c25 0 46 21 46 46v238H156c-29 0-52-23-52-52V170c0-30 24-54 54-54Z" fill="#fff6e8"/>
+  <path d="M154 116h32v284h-32c-28 0-50-22-50-50V166c0-28 22-50 50-50Z" fill="#f6d8bd"/>
+  <path d="M194 170h142M194 218h118M194 266h142" stroke="#3a2f24" stroke-width="22" stroke-linecap="round"/>
+  <path d="M146 390c0-23 18-41 41-41h213v51H187c-23 0-41-5-41-10Z" fill="#fffaf2"/>
+  <text x="256" y="337" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" fill="#ef6a4d">QL</text>
+</svg>

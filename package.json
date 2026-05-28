@@ -1,6 +1,6 @@
 {
   "name": "ql",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "一个极简、美观、私密的本地 TXT 小说阅读器。",
   "private": true,
   "type": "module",
