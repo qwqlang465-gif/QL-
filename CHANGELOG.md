@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.6.0 - 2026-05-29
+
+QL 第六阶段发布版本。
+
+### Added
+
+- 添加 Capacitor Android 工程目录 `android`
+- 添加 `capacitor.config.ts`，配置 Android 本地壳 hostname
+- 添加 Capacitor 依赖 `@capacitor/core`、`@capacitor/android` 和 `@capacitor/cli`
+- 添加 `cap:sync` 工程同步脚本
+- 添加 `android:open` Android Studio 打开脚本
+- 添加 `android:build` debug APK 构建脚本
+- Android 原生版本号更新为 `0.6.0`
+- Android 图标和启动图复用 QL 自有图标资源
+- 前端在 Capacitor Android 本地壳环境下自动使用 HashRouter
+- Service Worker 跳过 Capacitor / Android 本地壳环境
+- 更新 README、版本说明和 PWA 缓存版本
+
+### Changed
+
+- Android Manifest 移除默认网络权限，保持本地阅读器定位
+- Web App Manifest 描述同步更新为 TXT / EPUB 阅读器
+
+### Notes
+
+- `npm run build` 已通过验证
+- `npm run cap:sync` 已通过验证
+- `npm run android:build` 当前在下载 Gradle 官方发行包时超时；本机同时缺少 Android SDK，且 Java 版本为 8
+- Capacitor 8 生成的 Android 工程使用 Java 21 编译级别，原生构建需要 JDK 21、Android SDK 和稳定网络后继续验证
+- 本阶段是 Android 工程接入版本，不附带 APK 安装包
+
 ## v0.5.0 - 2026-05-29
 
 QL 第五阶段发布版本。

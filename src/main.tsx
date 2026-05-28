@@ -6,8 +6,9 @@ import { registerServiceWorker } from "./utils/registerServiceWorker";
 import "./styles/index.css";
 
 const localShellProtocols = new Set(["file:", "tauri:"]);
+const localShellHosts = new Set(["tauri.localhost", "ql.localhost", "capacitor.localhost"]);
 const Router =
-  localShellProtocols.has(window.location.protocol) || window.location.hostname === "tauri.localhost"
+  localShellProtocols.has(window.location.protocol) || localShellHosts.has(window.location.hostname)
     ? HashRouter
     : BrowserRouter;
 
