@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.8.4 - 2026-05-29
+
+QL Windows exe workflow 兜底修复版本。
+
+### Fixed
+
+- Windows exe workflow 在 npm 安装后找不到 `electron.exe` 时，会自动下载 Electron win32-x64 zip 作为兜底
+- Windows portable 组装步骤增加错误 annotation，失败时能在 GitHub Actions 页面看到具体原因
+- Android 原生版本号更新为 `0.8.4`
+
+### Notes
+
+- Android APK job 已在 GitHub Actions 中验证成功
+- 本版本继续发布 Windows exe zip 和 Android APK
+
 ## v0.8.3 - 2026-05-29
 
 QL Windows exe 发布 workflow 修复版本。

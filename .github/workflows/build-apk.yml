@@ -109,22 +109,42 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $appOut = "release\win-unpacked"
-          $resourcesApp = Join-Path $appOut "resources\app"
+          try {
+            $appOut = "release\win-unpacked"
+            $resourcesApp = Join-Path $appOut "resources\app"
+            $electronDist = "node_modules\electron\dist"
+            $electronExe = Join-Path $electronDist "electron.exe"
 
-          Remove-Item -Recurse -Force $appOut -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path $appOut | Out-Null
-          Copy-Item -Path "node_modules\electron\dist\*" -Destination $appOut -Recurse -Force
+            if (-not (Test-Path $electronExe)) {
+              $electronVersion = node -p "require('./node_modules/electron/package.json').version"
+              $downloadDir = ".cache\electron"
+              $zipPath = Join-Path $downloadDir "electron-v$electronVersion-win32-x64.zip"
+              $downloadUrl = "https://github.com/electron/electron/releases/download/v$electronVersion/electron-v$electronVersion-win32-x64.zip"
 
-          if (Test-Path (Join-Path $appOut "electron.exe")) {
-            Rename-Item -Path (Join-Path $appOut "electron.exe") -NewName "QL.exe" -Force
+              New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+              New-Item -ItemType Directory -Force -Path $electronDist | Out-Null
+              Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+              Expand-Archive -Path $zipPath -DestinationPath $electronDist -Force
+            }
+
+            Remove-Item -Recurse -Force $appOut -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path $appOut | Out-Null
+            Copy-Item -Path "$electronDist\*" -Destination $appOut -Recurse -Force
+
+            if (Test-Path (Join-Path $appOut "electron.exe")) {
+              Rename-Item -Path (Join-Path $appOut "electron.exe") -NewName "QL.exe" -Force
+            }
+
+            Remove-Item -Force (Join-Path $appOut "resources\default_app.asar") -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path $resourcesApp | Out-Null
+            Copy-Item -Path "dist" -Destination (Join-Path $resourcesApp "dist") -Recurse -Force
+            Copy-Item -Path "electron" -Destination (Join-Path $resourcesApp "electron") -Recurse -Force
+            Copy-Item -Path "package.json" -Destination (Join-Path $resourcesApp "package.json") -Force
+          } catch {
+            $message = $_.Exception.Message.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
+            Write-Host "::error title=Windows portable package failed::$message"
+            throw
           }
-
-          Remove-Item -Force (Join-Path $appOut "resources\default_app.asar") -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path $resourcesApp | Out-Null
-          Copy-Item -Path "dist" -Destination (Join-Path $resourcesApp "dist") -Recurse -Force
-          Copy-Item -Path "electron" -Destination (Join-Path $resourcesApp "electron") -Recurse -Force
-          Copy-Item -Path "package.json" -Destination (Join-Path $resourcesApp "package.json") -Force
 
       - name: Collect Windows exe
         shell: pwsh
