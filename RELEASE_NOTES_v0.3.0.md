@@ -4,8 +4,6 @@ QL 第三阶段发布版本。
 
 这个版本在 TXT 阅读和 PWA 支持基础上，加入 EPUB 导入能力。EPUB 文件会在浏览器本地解包和解析，章节正文继续保存到 IndexedDB，不上传文件、不需要后端。
 
-仓库地址：https://github.com/qwqlang465-gif/QL-
-
 ## Highlights
 
 - 支持导入 `.epub` 文件

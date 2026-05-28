@@ -4,8 +4,6 @@ QL 第四阶段发布版本。
 
 这个版本在 Web / PWA / EPUB 支持基础上，加入 Electron 桌面端封装和 Windows exe 安装包打包能力。桌面端复用现有 React + Vite 前端，不新增后端服务，也不改变本地优先的数据模型。
 
-仓库地址：https://github.com/qwqlang465-gif/QL-
-
 ## Highlights
 
 - 添加 Electron 主进程

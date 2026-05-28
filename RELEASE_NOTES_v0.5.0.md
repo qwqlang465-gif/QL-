@@ -4,8 +4,6 @@ QL 第五阶段发布版本。
 
 这个版本在 Electron 桌面端基础上加入 Tauri v2 工程配置。Tauri 版本继续复用同一套 React + Vite 前端代码，不引入后端，也不改变本地优先的数据存储方式。
 
-仓库地址：https://github.com/qwqlang465-gif/QL-
-
 ## Highlights
 
 - 添加 `src-tauri` 工程目录

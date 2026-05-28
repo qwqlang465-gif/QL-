@@ -4,8 +4,6 @@ QL 第二阶段发布版本。
 
 这个版本在第一阶段的本地 TXT 小说阅读能力之上，加入 PWA 支持，让 QL 可以作为可安装的网页应用使用，并在生产构建中提供基础离线访问能力。
 
-仓库地址：https://github.com/qwqlang465-gif/QL-
-
 ## Highlights
 
 - 添加 Web App Manifest
