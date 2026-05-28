@@ -181,12 +181,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF_NAME}"
-          notes_file="RELEASE_NOTES_${tag}.md"
+          notes_file="CHANGELOG.md"
           shopt -s globstar nullglob
-
-          if [ ! -f "$notes_file" ]; then
-            notes_file="CHANGELOG.md"
-          fi
 
           if ! gh release view "$tag" >/dev/null 2>&1; then
             gh release create "$tag" --title "QL ${tag}" --notes-file "$notes_file"
