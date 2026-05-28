@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.8.0 - 2026-05-29
+
+QL Android APK 自动构建版本。
+
+### Added
+
+- 添加 GitHub Actions workflow：`Build Android APK`
+- 推送 `v*` 标签时自动构建 Android debug / release APK
+- APK 构建产物会保存为 workflow artifact
+- tag 发布时自动把 APK 上传到 GitHub Release
+- Android release 构建使用 debug 签名兜底，方便个人手机直接安装测试
+- Android APK 输出文件名改为 `QL-${version}-${variant}.apk`
+
+### Changed
+
+- README 调整为当前主线：Windows exe + Android APK
+- Android 原生版本号更新为 `0.8.0`
+- 移除 Tauri 脚本、依赖和工程目录，发布路线收敛到 Electron + Capacitor
+- 移除 PWA manifest / service worker 入口，避免无关缓存影响 exe / APK 调试
+
+### Notes
+
+- 本机仍缺少 JDK 21 / Android SDK，APK 原生构建交给 GitHub Actions 执行
+- `npm run build` 和 `npm run desktop:pack` 已在本机验证
+
 ## v0.7.2 - 2026-05-29
 
 QL TXT 阅读稳定性补丁版本。

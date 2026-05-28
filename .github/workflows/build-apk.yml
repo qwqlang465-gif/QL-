@@ -1,0 +1,82 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  android-apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-36"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Build APKs
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug assembleRelease --stacktrace
+
+      - name: Collect APKs
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/debug/*.apk artifacts/QL-${{ github.ref_name }}-debug.apk
+          cp android/app/build/outputs/apk/release/*.apk artifacts/QL-${{ github.ref_name }}-release.apk
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: QL-${{ github.ref_name }}-android-apk
+          path: artifacts/*.apk
+          if-no-files-found: error
+
+      - name: Upload APKs to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          notes_file="RELEASE_NOTES_${tag}.md"
+
+          if [ ! -f "$notes_file" ]; then
+            notes_file="CHANGELOG.md"
+          fi
+
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --title "QL ${tag}" --notes-file "$notes_file"
+          fi
+
+          gh release upload "$tag" artifacts/*.apk --clobber
