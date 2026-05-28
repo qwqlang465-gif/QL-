@@ -1,8 +1,11 @@
 export function registerServiceWorker(): void {
+  const canUseServiceWorkerProtocol =
+    window.location.protocol === "http:" || window.location.protocol === "https:";
+
   if (
     !import.meta.env.PROD ||
     !("serviceWorker" in navigator) ||
-    window.location.protocol === "file:"
+    !canUseServiceWorkerProtocol
   ) {
     return;
   }

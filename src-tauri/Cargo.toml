@@ -1,0 +1,16 @@
+[package]
+name = "ql"
+version = "0.5.0"
+description = "一个极简、美观、私密的本地 TXT / EPUB 小说阅读器。"
+authors = ["qwqlang465-gif"]
+edition = "2021"
+
+[lib]
+name = "ql_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

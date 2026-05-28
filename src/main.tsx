@@ -5,7 +5,11 @@ import App from "./App";
 import { registerServiceWorker } from "./utils/registerServiceWorker";
 import "./styles/index.css";
 
-const Router = window.location.protocol === "file:" ? HashRouter : BrowserRouter;
+const localShellProtocols = new Set(["file:", "tauri:"]);
+const Router =
+  localShellProtocols.has(window.location.protocol) || window.location.hostname === "tauri.localhost"
+    ? HashRouter
+    : BrowserRouter;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

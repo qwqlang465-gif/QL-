@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.5.0 - 2026-05-29
+
+QL 第五阶段发布版本。
+
+### Added
+
+- 添加 Tauri v2 工程目录 `src-tauri`
+- 添加 Tauri Rust 入口、构建脚本和配置文件
+- 添加 Tauri v2 默认 capability 配置
+- 添加 Tauri 桌面端图标资源
+- 添加 `tauri:dev` 开发脚本
+- 添加 `tauri:build` 打包脚本
+- 前端在 Tauri 本地壳环境下自动使用 HashRouter
+- Service Worker 仅在 HTTP/HTTPS 环境注册，避免桌面壳环境误注册
+- 更新 README、版本说明和 package 元信息
+
+### Notes
+
+- 当前机器未安装 Rust 工具链，Tauri 原生构建需要安装 Rust 后继续验证
+- Web 构建已通过验证
+- Electron unpacked exe 构建已在 v0.4.0 验证通过
+
 ## v0.4.0 - 2026-05-29
 
 QL 第四阶段发布版本。

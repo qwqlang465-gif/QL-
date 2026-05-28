@@ -1,6 +1,6 @@
 {
   "name": "ql",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "一个极简、美观、私密的本地 TXT / EPUB 小说阅读器。",
   "author": "qwqlang465-gif",
   "private": true,
@@ -21,7 +21,8 @@
     "react",
     "vite",
     "indexeddb",
-    "electron"
+    "electron",
+    "tauri"
   ],
   "scripts": {
     "dev": "vite",
@@ -29,7 +30,9 @@
     "preview": "vite preview",
     "desktop:start": "npm run build && electron .",
     "desktop:pack": "npm run build && electron-builder --config electron-builder.config.cjs --win dir",
-    "desktop:dist": "npm run build && electron-builder --config electron-builder.config.cjs --win nsis"
+    "desktop:dist": "npm run build && electron-builder --config electron-builder.config.cjs --win nsis",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",
@@ -41,6 +44,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
