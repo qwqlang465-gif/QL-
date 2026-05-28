@@ -1,8 +1,25 @@
 {
   "name": "ql",
   "version": "0.1.0",
+  "description": "一个极简、美观、私密的本地 TXT 小说阅读器。",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qwqlang465-gif/QL-.git"
+  },
+  "homepage": "https://github.com/qwqlang465-gif/QL-#readme",
+  "bugs": {
+    "url": "https://github.com/qwqlang465-gif/QL-/issues"
+  },
+  "keywords": [
+    "txt-reader",
+    "novel-reader",
+    "local-first",
+    "react",
+    "vite",
+    "indexeddb"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
